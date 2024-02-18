@@ -3,9 +3,9 @@ import sys
 sys.path.append("")
 
 from micropython import const
+import bluetooth
 import asyncio
 import aioble
-import bluetooth
 
 import mini_protos as mp
 from app_logic import host_msg_handler

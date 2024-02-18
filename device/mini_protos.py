@@ -18,7 +18,7 @@ class SetLed(minipb.Message):
 
 
 @minipb.process_message_fields
-class SetSensorOptions(minipb.Message):
+class SensorOptions(minipb.Message):
     zero_point = minipb.Field(1, minipb.TYPE_UINT32)
     avg_window = minipb.Field(2, minipb.TYPE_UINT32)
     scale = minipb.Field(3, minipb.TYPE_FLOAT)
@@ -56,7 +56,7 @@ class AutoMode(minipb.Message):
 
 
 @minipb.process_message_fields
-class SetAutoOptions(minipb.Message):
+class AutoOptions(minipb.Message):
     # oneof activate {
     activate_mode = minipb.Field(1, AutoMode)
     activate_slotted_mode = minipb.Field(2, minipb.TYPE_UINT32)
@@ -78,8 +78,8 @@ class MainHostMsg(minipb.Message):
     # oneof content {
     set_led = minipb.Field(1, SetLed)
     get_reading = minipb.Field(2, GetReading)
-    set_sensor_options = minipb.Field(3, SetSensorOptions)
-    set_auto_options = minipb.Field(4, SetAutoOptions)
+    set_sensor_options = minipb.Field(3, SensorOptions)
+    set_auto_options = minipb.Field(4, AutoOptions)
     subscribe_reading = minipb.Field(5, SubscribeReading)
     # }
     oneof_content = (set_led, get_reading, set_sensor_options, set_auto_options, subscribe_reading)
