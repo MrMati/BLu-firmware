@@ -1,7 +1,9 @@
 from math import floor
 
+import asyncio
 import mini_protos as mp
 from hardware import set_led, read_sensor
+from app_state import app_state
 
 
 # Contains most of the application logic
@@ -25,9 +27,18 @@ def get_reading_handler(msg: mp.GetReading):
     return resp_msg
 
 
+def subscribe_reading_handler(msg: mp.SubscribeReading):
+    if msg.enable:
+        app_state.sensor_sub_enabled.set()
+        app_state.sensor_sub_update_rate = msg.update_rate
+    else:
+        app_state.sensor_sub_enabled.clear()
+
+
 main_handlers = {
     mp.SetLed: set_led_handler,
-    mp.GetReading: get_reading_handler
+    mp.GetReading: get_reading_handler,
+    mp.SubscribeReading: subscribe_reading_handler
 }
 
 
@@ -49,3 +60,17 @@ def host_msg_handler(host_msg: mp.MainHostMsg):
 def scale_sensor_reading(val: float) -> float:
     # TODO: proper scaling
     return val * 1.0
+
+
+async def subscriptions_task():
+    while True:
+        await app_state.sensor_sub_enabled.wait()
+
+        await asyncio.sleep(1 / app_state.sensor_sub_update_rate)
+
+        value = read_sensor(1)  # TODO: avg window
+        scaled_value = scale_sensor_reading(value)
+
+        sub_resp_msg = mp.ReadingResponse(raw_reading=floor(value), scaled_reading=scaled_value)
+        node_msg = mp.MainNodeMsg(reading_response=sub_resp_msg, is_subscription_response=True)
+        await app_state.response_queue.put(node_msg.encode())

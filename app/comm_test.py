@@ -1,7 +1,9 @@
+import sys
+sys.path.append("./protos/")
+
 import asyncio
 import logging
 import contextlib
-import time
 
 from bleak import BleakClient, BleakScanner
 from bleak.backends.characteristic import BleakGATTCharacteristic
@@ -24,16 +26,18 @@ register_uuids({data_in_uuid: "DATA_HOST_IN",
 
 
 def encode_host_msg():
-    if True:
+    if False:
         set_led = SetLed()
         set_led.color = 0xffff
         host_msg = MainHostMsg(set_led=set_led)
-        return host_msg.SerializeToString()
-    else:
+    elif False:
         get_reading = GetReading(num_samples=1)
         host_msg = MainHostMsg(get_reading=get_reading)
-        return host_msg.SerializeToString()
+    else:
+        sub_reading = SubscribeReading(enable=True, update_rate=1)
+        host_msg = MainHostMsg(subscribe_reading=sub_reading)
 
+    return host_msg.SerializeToString()
 
 def decode_node_msg(data: bytes):
     node_msg = MainNodeMsg()
@@ -63,10 +67,11 @@ async def main(address):
         data = encode_host_msg()
         for _ in range(1):
             await client.write_gatt_char(data_out_uuid, bytearray(data), response=True)
+            await asyncio.sleep(10)
             with contextlib.suppress(asyncio.TimeoutError):
                 await asyncio.wait_for(response_received.wait(), 1)
             response_received.clear()
-            time.sleep(1)
+            await asyncio.sleep(1)
         # await client.stop_notify(data_in_uuid)
 
         logger.info("disconnecting...")

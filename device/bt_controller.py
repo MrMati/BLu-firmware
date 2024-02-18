@@ -3,13 +3,13 @@ import sys
 sys.path.append("")
 
 from micropython import const
-import uasyncio as asyncio
+import asyncio
 import aioble
 import bluetooth
 
 import mini_protos as mp
-from hardware import init_hardware, free_hardware
 from app_logic import host_msg_handler
+from app_state import app_state
 
 _USER_DATA_UUID = bluetooth.UUID(0x181C)
 
@@ -33,22 +33,34 @@ data_in_char = aioble.Characteristic(
 aioble.register_services(data_service)
 
 
-async def control_task(conn):
+async def data_out_task(conn):
+    try:
+        with conn.timeout(None):
+            while True:
+                response = await app_state.response_queue.get()
+                print(f"{response=}")
+                data_out_char.write(response)
+                data_out_char.notify(conn)
+
+    except aioble.DeviceDisconnectedError:
+        return
+
+
+async def data_in_task(conn):
     try:
         with conn.timeout(None):
             while True:
                 print("Waiting for write")
                 await data_in_char.written()
                 data_in = data_in_char.read()
-                print("Recv:", data_in)
+                print(f"{data_in=}")
 
                 host_msg = mp.MainHostMsg.decode(data_in)
                 node_msg = host_msg_handler(host_msg)
 
                 if node_msg:
                     node_msg_enc = node_msg.encode()
-                    data_out_char.write(node_msg_enc)
-                    data_out_char.notify(conn)
+                    await app_state.response_queue.put(node_msg_enc)
 
     except aioble.DeviceDisconnectedError:
         return
@@ -64,25 +76,18 @@ async def peripheral_task():
         ) as connection:
             print("Connection from", connection.device)
 
-            # c_task = asyncio.create_task(control_task())
-            await control_task(connection)
+            c_task = asyncio.create_task(data_in_task(connection))
+            r_task = asyncio.create_task(data_out_task(connection))
+            await asyncio.gather(c_task, r_task)
 
             await connection.disconnected()
+
+            # TODO: extract disconnection cleanup to function
+            app_state.sensor_sub_enabled.clear()
+            app_state.response_queue.empty()
+
             print("Device disconnected")
             # Allegedly prevents a delayed crash of `await connection.disconnected()`
             # while connection.is_connected() == True:
             #    #print(f'Connection status: {connection.is_connected()}')
             #    await asyncio.sleep_ms(1000)
-
-
-async def main():
-    init_hardware()
-
-    t2 = asyncio.create_task(peripheral_task())
-    await asyncio.gather(t2)
-
-    # Not expected to ever get here, as of now
-    free_hardware()
-
-
-asyncio.run(main())
