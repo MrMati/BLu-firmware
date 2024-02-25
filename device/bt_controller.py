@@ -44,6 +44,8 @@ async def data_out_task(conn):
 
     except aioble.DeviceDisconnectedError:
         return
+    except OSError:
+        return
 
 
 async def data_in_task(conn):
@@ -56,7 +58,7 @@ async def data_in_task(conn):
                 print(f"{data_in=}")
 
                 host_msg = mp.MainHostMsg.decode(data_in)
-                node_msg = host_msg_handler(host_msg)
+                node_msg = await host_msg_handler(host_msg)
 
                 if node_msg:
                     node_msg_enc = node_msg.encode()

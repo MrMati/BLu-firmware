@@ -22,8 +22,7 @@ class State(Singleton):
         self.scaling_factor = 1.0
         self.zero_point = 0
         self._avg_window_size = 1
-        self.sensor_samples = deque(maxlen=self._avg_window_size)
-
+        self.sensor_samples = deque((), self._avg_window_size)
 
         # subscription
         self.sensor_sub_update_rate: int = 1
@@ -31,7 +30,7 @@ class State(Singleton):
 
     def set_avg_window_size(self, size: int):
         self._avg_window_size = size
-        self.sensor_samples = deque(maxlen=size)
+        self.sensor_samples = deque((), size)
 
 
 app_state = State()

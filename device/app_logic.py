@@ -10,11 +10,11 @@ from app_state import app_state
 # Independent of micropython, so it can be run on host with mocked hardware interface
 
 
-def host_msg_handler(host_msg: mp.MainHostMsg):
+async def host_msg_handler(host_msg: mp.MainHostMsg):
     main_msg = mp.extract_oneof_field(host_msg, host_msg.oneof_content)
     if not main_msg:
         return
-    resp_msg = msg_handlers[type(main_msg)](main_msg)
+    resp_msg = await msg_handlers[type(main_msg)](main_msg)
 
     if resp_msg:
         if type(resp_msg) is mp.ReadingResponse:
@@ -25,13 +25,13 @@ def host_msg_handler(host_msg: mp.MainHostMsg):
         return node_msg
 
 
-def set_led_handler(msg: mp.SetLed):
+async def set_led_handler(msg: mp.SetLed):
     print("Setting led to color:", hex(msg.color))
     set_led(msg.color)
 
 
 # Independent of window avg
-def get_reading_handler(msg: mp.GetReading):
+async def get_reading_handler(msg: mp.GetReading):
     print("Host requested a sensor reading, we probably should do something about it")
     if msg.num_samples > 1:
         print(f"Oh. And it wants avg from {msg.num_samples} samples")
@@ -45,17 +45,17 @@ def get_reading_handler(msg: mp.GetReading):
     return resp_msg
 
 
-def set_sensor_options_handler(msg: mp.SensorOptions):
+async def set_sensor_options_handler(msg: mp.SensorOptions):
     app_state.scaling_factor = msg.scale
     app_state.set_avg_window_size(msg.avg_window)
     app_state.zero_point = msg.zero_point
 
 
-def set_auto_options_handler(msg: mp.AutoOptions):
+async def set_auto_options_handler(msg: mp.AutoOptions):
     raise NotImplementedError
 
 
-def subscribe_reading_handler(msg: mp.SubscribeReading):
+async def subscribe_reading_handler(msg: mp.SubscribeReading):
     if msg.enable:
         app_state.sensor_sub_enabled.set()
         app_state.sensor_sub_update_rate = msg.update_rate
