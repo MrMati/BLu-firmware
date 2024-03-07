@@ -12,15 +12,15 @@ def init_hardware():
 RED = 0
 GREEN = 1
 BLUE = 2
-pwms = []
+pwm_pins = [4, 3, 2]
 
+pwms = []
 adc: ADC | None = None
 
 
 def init_led():
     global pwms
 
-    pwm_pins = [2, 3, 4]
     # PWM is inverted for common anode LED
     pwms = [PWM(Pin(pwm_pins[c]), invert=True) for c in range(3)]
     [pwm.freq(1000) for pwm in pwms]
