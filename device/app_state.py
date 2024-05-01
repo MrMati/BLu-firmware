@@ -18,7 +18,6 @@ class State(Singleton):
         self.response_queue = async_queue.Queue()
 
         # sensor
-        self.sensor_lock = asyncio.Lock()
         self.scaling_factor = 1.0
         self.zero_point = 0
         self._avg_window_size = 1

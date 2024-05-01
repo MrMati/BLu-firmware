@@ -36,8 +36,7 @@ async def get_reading_handler(msg: mp.GetReading):
     if msg.num_samples > 1:
         print(f"Oh. And it wants avg from {msg.num_samples} samples")
 
-    async with app_state.sensor_lock:
-        value = read_sensor(msg.num_samples or 1)
+    value = read_sensor(msg.num_samples or 1)
 
     scaled_value = scale_sensor_reading(value)
 
@@ -81,8 +80,7 @@ async def subscriptions_task():
         await app_state.sensor_sub_enabled.wait()
         await asyncio.sleep(1 / app_state.sensor_sub_update_rate)
 
-        async with app_state.sensor_lock:
-            value = read_sensor(1)  # TODO: avg window
+        value = read_sensor(1)  # TODO: avg window
 
         scaled_value = scale_sensor_reading(value)
         sub_resp_msg = mp.ReadingResponse(raw_reading=floor(value), scaled_reading=scaled_value)
