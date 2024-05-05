@@ -1,6 +1,7 @@
 import asyncio
 from collections import deque
 import async_queue
+import device.mini_protos as mp
 
 
 class Singleton(object):
@@ -26,6 +27,17 @@ class State(Singleton):
         # subscription
         self.sensor_sub_update_rate: int = 1
         self.sensor_sub_enabled = asyncio.Event()
+
+        # modes
+        self.active_mode: mp.AutoMode | None = None
+        self.modes = {}
+
+    def set_manual_mode(self):
+        self.active_mode = None
+
+    def set_slot_mode(self, slot_num: int):
+        if slot_num in self.modes:
+            self.active_mode = self.modes[slot_num]
 
     def set_avg_window_size(self, size: int):
         self._avg_window_size = size

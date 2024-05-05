@@ -19,25 +19,22 @@ async def host_msg_handler(host_msg: mp.MainHostMsg):
     if resp_msg:
         if type(resp_msg) is mp.ReadingResponse:
             node_msg = mp.MainNodeMsg(reading_response=resp_msg)
-        else:
-            print("ERROR: Some msg_handler responded with unexpected response type:", type(resp_msg).__name__)
-            return None
-        return node_msg
+            return node_msg
+
+        print(f"ERROR: {type(main_msg).__name__} handler returned unexpected response type: {type(resp_msg).__name__}")
 
 
 async def set_led_handler(msg: mp.SetLed):
     print("Setting led to color:", hex(msg.color))
+
+    # setting a LED manually disables auto mode
+    app_state.active_mode = None
     set_led(msg.color)
 
 
 # Independent of window avg
 async def get_reading_handler(msg: mp.GetReading):
-    print("Host requested a sensor reading, we probably should do something about it")
-    if msg.num_samples > 1:
-        print(f"Oh. And it wants avg from {msg.num_samples} samples")
-
     value = read_sensor(msg.num_samples or 1)
-
     scaled_value = scale_sensor_reading(value)
 
     resp_msg = mp.ReadingResponse(raw_reading=floor(value), scaled_reading=scaled_value)
@@ -51,7 +48,15 @@ async def set_sensor_options_handler(msg: mp.SensorOptions):
 
 
 async def set_auto_options_handler(msg: mp.AutoOptions):
-    raise NotImplementedError
+    if msg.slot_modes:
+        # overwrite slot_modes
+        for slot_mode in msg.slot_modes:
+            app_state.modes[slot_mode.slot] = slot_mode
+
+    if slot_num := msg.activate_slotted_mode:
+        app_state.set_slot_mode(slot_num)
+    elif temp_mode := msg.activate_mode:
+        app_state.active_mode = temp_mode
 
 
 async def subscribe_reading_handler(msg: mp.SubscribeReading):
